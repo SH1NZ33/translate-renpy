@@ -1,3 +1,4 @@
+import contextlib
 import threading
 import time
 from sys import platform
@@ -11,10 +12,10 @@ import database
 import monitoring_selenium
 
 XPATH_OF_INPUT_TEXTBOX = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[1]/span/span/div/textarea'
-XPATH_OF_OUTPUT_TEXTBOX = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[2]/div[8]/div/div[1]/span[1]/span/span'
-XPATH_OF_OUTPUT_TEXTBOX_CASE_GENDER_SPECIFIC = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[2]/div[8]/div[1]/div[1]/span[1]'
+XPATH_OF_OUTPUT_TEXTBOX = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[2]/div/div[8]/div/div[1]/span[1]/span/span'
+XPATH_OF_OUTPUT_TEXTBOX_CASE_GENDER_SPECIFIC = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[2]/div/div[8]/div[1]/div[1]/span[1]'
 XPATCH_OF_DELETE_BUTTON = '/html/body/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[3]/c-wiz[1]/div[1]/div/div/span/button'
-XPATCH_AGREE_TERMS_BUTTON = '/html/body/c-wiz/div/div/div/div[2]/div[1]/div[4]/form/div[1]/div/button'
+XPATCH_AGREE_TERMS_BUTTON = '/html/body/c-wiz/div/div/div/div[2]/div[1]/div[3]/div[1]/div[1]/form[2]/div/div/button'
 
 PHRASE_ON_THREAD = 50
 MAX_TIME_WAIT_ELEMENT = 10
@@ -45,37 +46,39 @@ def set_is_error(value):
 def build_web_driver_options(show_browser):
     if not show_browser:
         WEB_DRIVER_OPTIONS.add_argument('--headless')
-    # WEB_DRIVER_OPTIONS.add_argument('--no-sandbox')
-    WEB_DRIVER_OPTIONS.add_argument('--disable-gpu')
-    WEB_DRIVER_OPTIONS.add_argument('--log-level=3')
-    WEB_DRIVER_OPTIONS.add_argument('--disable-extensions')
-    WEB_DRIVER_OPTIONS.add_argument('disable-infobars')
-    WEB_DRIVER_OPTIONS.add_argument('--window-size=500,420')
+    for arg in [
+        '--disable-gpu', 
+        '--log-level=3', 
+        '--disable-extensions', 
+        'disable-infobars',
+        #'--no-sandbox',
+        '--window-size=500,420']:
+        WEB_DRIVER_OPTIONS.add_argument(arg)
 
 
 def get_input_text_area(driver):
-    for x in range(0, NUMBER_OF_RETRIES):
+    for _ in range(NUMBER_OF_RETRIES):
         try:
             return driver.find_element(By.XPATH, XPATH_OF_INPUT_TEXTBOX)
-        except:
+        except Exception:
             time.sleep(MAX_TIME_WAIT_ELEMENT)
 
 
 def clear_input(input_text_area, driver):
-    for x in range(0, NUMBER_OF_RETRIES):
+    for _ in range(NUMBER_OF_RETRIES):
         try:
             input_text_area.clear()
             return
-        except:
+        except Exception:
             input_text_area = get_input_text_area(driver)
 
 
 def send_keys_to_input(text, input_text_area, driver):
-    for x in range(0, NUMBER_OF_RETRIES):
+    for _ in range(NUMBER_OF_RETRIES):
         try:
             input_text_area.send_keys(text)
             return
-        except:
+        except Exception:
             input_text_area = get_input_text_area(driver)
 
 
@@ -85,16 +88,13 @@ def translate(phrase, input_text_area, wait, driver):
     is_translate_ok = False
     clear_input(input_text_area, driver)
     send_keys_to_input(phrase.text, input_text_area, driver)
-    for x in range(0, NUMBER_OF_RETRIES):
-        try:
+    for _ in range(NUMBER_OF_RETRIES):
+        with contextlib.suppress(Exception):
             # wait text availible
             result = wait.until(
                 EC.element_to_be_clickable((By.XPATH, XPATH_OF_OUTPUT_TEXTBOX))
             ).text
             is_translate_ok = True
-        except:
-            pass
-
         # case gender-specific
         if not is_translate_ok:
             try:
@@ -104,7 +104,7 @@ def translate(phrase, input_text_area, wait, driver):
                         (By.XPATH, XPATH_OF_OUTPUT_TEXTBOX_CASE_GENDER_SPECIFIC))
                 ).text
                 is_translate_ok = True
-            except:
+            except Exception:
                 send_keys_to_input('.', input_text_area, driver)
 
         if is_translate_ok:
@@ -116,17 +116,17 @@ def translate(phrase, input_text_area, wait, driver):
         return phrase
 
     is_clear_ok = False
-    for x in range(0, NUMBER_OF_RETRIES):
+    for _ in range(NUMBER_OF_RETRIES):
         try:
             wait.until(
                 EC.element_to_be_clickable((By.XPATH, XPATCH_OF_DELETE_BUTTON))
             ).click()
             is_clear_ok = True
-        except:
+        except Exception:
             try:
                 clear_input(input_text_area, driver)
                 is_clear_ok = True
-            except:
+            except Exception:
                 is_clear_ok = False
         if is_clear_ok:
             break
@@ -140,13 +140,11 @@ def translate(phrase, input_text_area, wait, driver):
 
 
 def agree_google_terms(wait):
-    try:
+    with contextlib.suppress(Exception):
         wait.until(
             EC.element_to_be_clickable(
                 (By.XPATH, XPATCH_AGREE_TERMS_BUTTON))
         ).click()
-    except:
-        pass
 
 
 def runner(thread_index, driver_path):
@@ -155,14 +153,8 @@ def runner(thread_index, driver_path):
     global original_language
     global into_language
     with webdriver.Chrome(executable_path=driver_path, options=WEB_DRIVER_OPTIONS) as driver:
-        driver.get(
-            'https://translate.google.com/?hl=en&sl={original_language}&tl={into_language}&op=translate/'.format(
-                original_language=original_language,
-                into_language=into_language
-            )
-        )
-        driver.execute_script(
-            'document.title = "Thread {}"'.format(thread_index + 1))
+        driver.get(f'https://translate.google.com/?hl=en&sl={original_language}&tl={into_language}&op=translate/')
+        driver.execute_script(f'document.title = "Thread {thread_index + 1}"')
         wait = WebDriverWait(driver, MAX_TIME_WAIT_ELEMENT)
         agree_google_terms(wait)
         input_text_area = get_input_text_area(driver)
@@ -196,12 +188,12 @@ def runner(thread_index, driver_path):
 
 
 def get_driver():
-    if platform == 'linux' or platform == 'linux2':
-        return DRIVER_PATH_LINUX
-    elif platform == 'darwin':
-        return DRIVER_PATH_MAC
-    elif platform == 'win32':
-        return DRIVER_PATH_WIN
+    return {
+        'linux': DRIVER_PATH_LINUX,
+        'linux2': DRIVER_PATH_LINUX,
+        'darwin': DRIVER_PATH_MAC,
+        'win32': DRIVER_PATH_WIN
+    }.get(platform, None)
 
 
 def google_translate_selenium(run_info):
