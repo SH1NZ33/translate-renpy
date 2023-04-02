@@ -37,10 +37,7 @@ def get_content_from_line(original_line):
 
 
 def check_have_old_translate_content(line):
-    if get_content_from_line(line) != "":
-        return True
-    else:
-        return False
+    return get_content_from_line(line) != ""
 
 
 def remove_old_translate_content(line):
@@ -53,7 +50,7 @@ def remove_old_translate_content(line):
                 is_start = True
                 continue
             if line[i-2] != '\\':
-                return line[0:i] + line[start_index-1::]
+                return line[:i] + line[start_index-1::]
 
 
 def break_dialogue(file):
@@ -101,7 +98,7 @@ def is_need_translate(text):
     else:
         need_translate = False
         for i in range(len(text)):
-            if text[i] != '.' and text[i] != '!' and text[i] != '?' and text[i] != ' ':
+            if text[i] not in ['.', '!', '?', ' ']:
                 need_translate = True
     return need_translate
 
