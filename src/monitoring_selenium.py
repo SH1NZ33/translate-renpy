@@ -28,7 +28,7 @@ def set_is_error(value):
 
 def init_thread_count_array(number_of_thread):
     global phrase_thread_status
-    for i in range(number_of_thread):
+    for _ in range(number_of_thread):
         phrase_thread_status.append({
             'total_done': 0,
             'is_stopped': False
@@ -79,17 +79,16 @@ def runner_display():
         if total_phrase != 0:
             percent = round(float(total_phrase_done) /
                             float(total_phrase) * 100, 2)
-        print('Total phrase: {}'.format(total_phrase))
-        print('Process: {}/{} ({}%)'.format(total_phrase_done, total_phrase, percent))
-        print('Time left: {}'.format(format_seconds_to_display(time_left)))
-        print('-----------------------------------------')
+        print(f'Total phrase: {total_phrase}')
+        print(f'Process: {total_phrase_done}/{total_phrase} ({percent}%)')
+        print(f'Time left: {format_seconds_to_display(time_left)}')
+        print('-'*40)
         for i in range(len(phrase_thread_status)):
-            print('Total phrase done on thread {}: {} {}'.format(
-                i + 1, phrase_thread_status[i]['total_done'], '(stopped)' if phrase_thread_status[i]['is_stopped'] else ''))
+            print(
+                f"Total phrase done on thread {i + 1}: {phrase_thread_status[i]['total_done']} {'(stopped)' if phrase_thread_status[i]['is_stopped'] else ''}"
+            )
         if _is_error:
-            print(' ')
-            print('Translation was stopped because the issue of network')
-            input('Press Enter to exit...')
+            print(" \nTranslation was stopped because the issue of network\nPress Enter to exit...")
             sys.exit()
         if not _is_running and not _is_error:
             print('----------Translation completed----------')
@@ -113,12 +112,8 @@ def runner_count():
         if total_in_time > 0:
             time_left = int(
                 (total_phrase - total_phrase_done) / total_in_time * sleep_time)
-        if sleep_time == 5:
-            sleep_time = 10
-        if sleep_time == 10:
-            sleep_time = 30
-        if sleep_time == 30:
-            sleep_time = 60
+        if sleep_time in [5, 10, 30]:
+            sleep_time *= 2
 
 
 def monitoring_process():
