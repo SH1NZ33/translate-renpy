@@ -13,10 +13,7 @@ def check_before_merge():
 
 
 def merge_text(phrases):
-    ret = ''
-    for p in phrases:
-        ret += p.space_before + p.text + p.space_after
-    return ret
+    return ''.join(p.space_before + p.text + p.space_after for p in phrases)
 
 
 def merge_dialogue():
@@ -42,7 +39,7 @@ def merge_dialogue():
             line_strip = line.strip()
             if line_strip.count('"') >= 2 and line_strip.endswith('"'):
                 if not is_original_line:
-                    line = line.replace('""', '"{}"'.format(text_merged))
+                    line = line.replace('""', f'"{text_merged}"')
                 is_original_line = not is_original_line
             dialogue_text += line
         database.update_dialogue_translated(dialogue.id, dialogue_text)
